@@ -1,0 +1,18 @@
+{
+  "status": "running",
+  "progress": 0,
+  "current_task": "Airflow DAG triggered \u2014 running...",
+  "start_time": "2026-04-18T17:01:26.849847",
+  "end_time": null,
+  "logs": [
+    "[17:01:26] Pipeline requested \u2014 source=CSV File, records=1,000,000 rows (scaled), big_data=True (target=1,000,000)",
+    "[17:01:26] \u2705 Airflow DAG triggered (mode=airflow)"
+  ],
+  "total_records": 0,
+  "cleaned_records": 0,
+  "removed_duplicates": 0,
+  "missing_filled": 0,
+  "output_file": "",
+  "summary": {},
+  "mode": "airflow"
+}

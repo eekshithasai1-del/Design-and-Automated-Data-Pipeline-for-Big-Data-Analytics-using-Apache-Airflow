@@ -1,0 +1,1991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DataFlow — E-Commerce Pipeline Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════ */
+:root {
+  --bg:       #060C18;
+  --surf:     #0C1526;
+  --surf2:    #111E34;
+  --surf3:    #162440;
+  --border:   #1C2E4A;
+  --border2:  #243656;
+
+  --cyan:     #00C8F0;
+  --cyan-dim: #00C8F020;
+  --mint:     #00E5A0;
+  --mint-dim: #00E5A015;
+  --amber:    #F5A623;
+  --red:      #FF4D6A;
+  --red-dim:  #FF4D6A18;
+  --purple:   #9B7FFF;
+
+  --text:     #D8E8F8;
+  --text2:    #8EAACB;
+  --text3:    #4D6B8A;
+
+  --sidebar-w: 240px;
+  --topbar-h:  60px;
+
+  --r-sm:  6px;
+  --r-md:  10px;
+  --r-lg:  14px;
+  --r-xl:  20px;
+
+  --shadow: 0 4px 24px #00000060;
+  --glow-cyan: 0 0 20px #00C8F030;
+  --glow-mint: 0 0 20px #00E5A030;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════
+   SCROLLBARS
+═══════════════════════════════════════ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+
+/* ═══════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--surf);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  height: 100vh;
+  position: relative;
+  z-index: 20;
+}
+
+.sidebar-logo {
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo-icon {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, var(--cyan), var(--mint));
+  border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+  box-shadow: var(--glow-cyan);
+  flex-shrink: 0;
+}
+.logo-text { font-size: 1.05rem; font-weight: 800; letter-spacing: -.02em; color: var(--text); }
+.logo-sub  { font-size: .68rem; color: var(--text3); margin-top: 1px; letter-spacing: .04em; text-transform: uppercase; }
+
+.sidebar-nav {
+  flex: 1;
+  padding: 18px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+.nav-section-label {
+  font-size: .65rem;
+  font-weight: 700;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  padding: 10px 10px 6px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: all .18s;
+  font-size: .875rem;
+  font-weight: 500;
+  color: var(--text2);
+  border: 1px solid transparent;
+}
+.nav-item .nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+.nav-item .nav-badge {
+  margin-left: auto;
+  background: var(--cyan-dim);
+  color: var(--cyan);
+  font-size: .65rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+.nav-item:hover { background: var(--surf2); color: var(--text); }
+.nav-item.active {
+  background: var(--surf2);
+  border-color: var(--border2);
+  color: var(--cyan);
+  box-shadow: inset 3px 0 0 var(--cyan);
+}
+
+.sidebar-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+}
+.pipeline-mode-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surf2);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+  padding: 9px 12px;
+  font-size: .78rem;
+}
+.mode-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--mint);
+  box-shadow: var(--glow-mint);
+  flex-shrink: 0;
+}
+.mode-dot.local { background: var(--amber); box-shadow: 0 0 12px #F5A62340; }
+.mode-dot.unknown { background: var(--text3); box-shadow: none; }
+.mode-label { color: var(--text2); }
+.mode-val { color: var(--text); font-weight: 600; }
+
+/* ═══════════════════════════════════════
+   MAIN LAYOUT
+═══════════════════════════════════════ */
+.shell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Top bar ── */
+.topbar {
+  height: var(--topbar-h);
+  background: var(--surf);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.topbar-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.topbar-sub {
+  font-size: .78rem;
+  color: var(--text3);
+}
+.topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: .78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  background: var(--surf2);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  transition: all .3s;
+}
+.status-pill .pill-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--text3);
+  transition: all .3s;
+}
+.status-pill.running { background: #162440; border-color: #0C5580; color: var(--cyan); }
+.status-pill.running .pill-dot { background: var(--cyan); box-shadow: var(--glow-cyan); animation: blink 1.2s infinite; }
+.status-pill.success { background: #0E2B1F; border-color: #1A4D36; color: var(--mint); }
+.status-pill.success .pill-dot { background: var(--mint); box-shadow: var(--glow-mint); }
+.status-pill.failed  { background: var(--red-dim); border-color: #5A1A28; color: var(--red); }
+.status-pill.failed  .pill-dot { background: var(--red); }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:.3} }
+
+.topbar-btn {
+  padding: 6px 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border2);
+  background: var(--surf2);
+  color: var(--text2);
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .18s;
+  font-family: inherit;
+}
+.topbar-btn:hover { background: var(--surf3); color: var(--text); }
+
+/* ── Content area ── */
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Hide sections */
+.section-page { display: none; flex-direction: column; gap: 20px; }
+.section-page.active { display: flex; }
+
+/* ═══════════════════════════════════════
+   CARDS
+═══════════════════════════════════════ */
+.card {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px 22px;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.card-header .card-icon {
+  width: 28px; height: 28px;
+  border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem;
+  flex-shrink: 0;
+}
+.card-icon.cyan  { background: var(--cyan-dim); }
+.card-icon.mint  { background: var(--mint-dim); }
+.card-icon.amber { background: #F5A62315; }
+.card-icon.red   { background: var(--red-dim); }
+.card-icon.purple { background: #9B7FFF15; }
+.card-title { font-size: .88rem; font-weight: 700; color: var(--text); }
+.card-sub   { font-size: .74rem; color: var(--text3); margin-top: 1px; }
+.card-action {
+  margin-left: auto;
+  font-size: .74rem;
+  color: var(--cyan);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+/* ═══════════════════════════════════════
+   GRID HELPERS
+═══════════════════════════════════════ */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media(max-width:1100px) { .grid4 { grid-template-columns: repeat(2,1fr); } }
+@media(max-width:900px)  { .grid2,.grid3 { grid-template-columns: 1fr; } }
+
+/* ═══════════════════════════════════════
+   KPI TILES
+═══════════════════════════════════════ */
+.kpi-tile {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color .2s;
+}
+.kpi-tile::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--accent-line, var(--border));
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  transition: background .3s;
+}
+.kpi-tile:hover { border-color: var(--border2); }
+.kpi-tile.cyan  { --accent-line: var(--cyan); }
+.kpi-tile.mint  { --accent-line: var(--mint); }
+.kpi-tile.amber { --accent-line: var(--amber); }
+.kpi-tile.purple{ --accent-line: var(--purple); }
+
+.kpi-label { font-size: .72rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+.kpi-value { font-size: 2rem; font-weight: 800; color: var(--text); letter-spacing: -.03em; line-height: 1; }
+.kpi-value.cyan   { color: var(--cyan); }
+.kpi-value.mint   { color: var(--mint); }
+.kpi-value.amber  { color: var(--amber); }
+.kpi-value.purple { color: var(--purple); }
+.kpi-sub { font-size: .74rem; color: var(--text3); margin-top: 6px; }
+.kpi-icon { position: absolute; top: 18px; right: 18px; font-size: 1.4rem; opacity: .18; }
+
+/* ═══════════════════════════════════════
+   PIPELINE CONTROL
+═══════════════════════════════════════ */
+.controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+.ctrl-group { display: flex; flex-direction: column; gap: 5px; }
+.ctrl-label { font-size: .72rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; }
+.ctrl-select, .ctrl-input {
+  background: var(--surf2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 9px 14px;
+  border-radius: var(--r-md);
+  font-size: .875rem;
+  font-family: inherit;
+  outline: none;
+  min-width: 160px;
+  transition: border-color .18s;
+}
+.ctrl-select:focus, .ctrl-input:focus { border-color: var(--cyan); }
+
+.btn {
+  padding: 9px 20px;
+  border-radius: var(--r-md);
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: .875rem;
+  font-family: inherit;
+  transition: all .18s;
+  letter-spacing: .01em;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #0088BB, var(--cyan));
+  color: #021520;
+  box-shadow: 0 4px 16px #00C8F030;
+}
+.btn-primary:hover  { transform: translateY(-1px); box-shadow: 0 6px 20px #00C8F050; }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: .35; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-ghost {
+  background: var(--surf2);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+}
+.btn-ghost:hover { background: var(--surf3); color: var(--text); }
+.btn-success {
+  background: linear-gradient(135deg, #007A4D, var(--mint));
+  color: #01160D;
+}
+.btn-success:hover { transform: translateY(-1px); }
+.btn-success:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+
+/* Progress */
+.progress-track {
+  background: var(--surf2);
+  border-radius: 50px;
+  height: 6px;
+  overflow: hidden;
+  margin-top: 14px;
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 50px;
+  background: linear-gradient(90deg, #0088BB, var(--cyan), var(--mint));
+  transition: width .6s cubic-bezier(.4,0,.2,1);
+  position: relative;
+}
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 40px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.4));
+  border-radius: 50px;
+  animation: shimmer 1.5s ease infinite;
+}
+@keyframes shimmer { 0%,100%{opacity:0} 50%{opacity:1} }
+.progress-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: .78rem;
+}
+.progress-pct { color: var(--cyan); font-weight: 700; margin-left: auto; }
+.progress-task { color: var(--text2); }
+
+/* ═══════════════════════════════════════
+   DAG PIPELINE FLOW
+═══════════════════════════════════════ */
+.dag-flow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.dag-step {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+.dag-node-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 80px;
+}
+.dag-circle {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--surf2);
+  border: 2px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem;
+  transition: all .3s;
+  position: relative;
+  z-index: 1;
+}
+.dag-circle.active {
+  border-color: var(--cyan);
+  background: #0C2535;
+  box-shadow: var(--glow-cyan);
+  animation: spin 2s linear infinite;
+}
+.dag-circle.done {
+  border-color: var(--mint);
+  background: #0A2018;
+  box-shadow: var(--glow-mint);
+}
+.dag-circle.done::after {
+  content: '✓';
+  color: var(--mint);
+  font-size: .9rem;
+  font-weight: 700;
+}
+.dag-circle.active::after {
+  content: '⟳';
+  color: var(--cyan);
+  animation: spin 1.5s linear infinite;
+}
+.dag-circle.idle::after { content: attr(data-num); color: var(--text3); font-size: .78rem; font-weight: 600; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.dag-circle.active { animation: none; }
+.dag-circle.active::after { display: inline-block; animation: spin 1.5s linear infinite; }
+.dag-label {
+  font-size: .7rem;
+  color: var(--text3);
+  text-align: center;
+  line-height: 1.3;
+  transition: color .3s;
+}
+.dag-circle.done  ~ .dag-label { color: var(--mint); }
+.dag-circle.active ~ .dag-label { color: var(--cyan); }
+.dag-connector {
+  flex-shrink: 0;
+  height: 2px;
+  width: 30px;
+  background: var(--border2);
+  transition: background .4s;
+  position: relative;
+  top: -14px;
+}
+.dag-connector.done { background: var(--mint); }
+
+/* ═══════════════════════════════════════
+   TASK LIST
+═══════════════════════════════════════ */
+.task-list { display: flex; flex-direction: column; gap: 8px; }
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--surf2);
+  border: 1px solid var(--border);
+  transition: all .2s;
+  font-size: .85rem;
+}
+.task-row.active { border-color: #0C5580; background: #0C1E30; }
+.task-row.done   { border-color: #1A4D36; }
+.task-status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border2);
+  flex-shrink: 0;
+  transition: all .3s;
+}
+.task-row.active .task-status-dot { background: var(--cyan); box-shadow: var(--glow-cyan); animation: blink 1.2s infinite; }
+.task-row.done   .task-status-dot { background: var(--mint); }
+.task-name { flex: 1; color: var(--text2); font-weight: 500; }
+.task-row.active .task-name { color: var(--text); }
+.task-row.done   .task-name { color: var(--text); }
+.task-dur { color: var(--text3); font-size: .74rem; font-family: 'Fira Code', monospace; }
+.task-check { color: var(--mint); font-size: .85rem; }
+
+/* ═══════════════════════════════════════
+   LOG BOX
+═══════════════════════════════════════ */
+.log-terminal {
+  background: #020710;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  height: 240px;
+  overflow-y: auto;
+  font-family: 'Fira Code', monospace;
+  font-size: .78rem;
+  line-height: 1.7;
+}
+.log-line { color: #56CCB0; }
+.log-line.warn { color: var(--amber); }
+.log-line.error { color: var(--red); font-weight: 500; }
+.log-line.info  { color: #6B9FCC; }
+.log-line .log-ts { color: var(--text3); margin-right: 4px; }
+
+/* ═══════════════════════════════════════
+   CHARTS
+═══════════════════════════════════════ */
+.chart-wrap { position: relative; height: 220px; }
+.chart-wrap canvas { max-height: 220px; }
+
+/* ═══════════════════════════════════════
+   DATA TABLE
+═══════════════════════════════════════ */
+.data-table-wrap { overflow-x: auto; max-height: 280px; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+thead tr { background: var(--surf2); position: sticky; top: 0; z-index: 2; }
+th {
+  padding: 10px 14px;
+  text-align: left;
+  color: var(--text3);
+  font-weight: 700;
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  border-bottom: 1px solid var(--border2);
+}
+td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  vertical-align: middle;
+}
+tr:hover td { background: var(--surf2); }
+.td-rank {
+  width: 28px; height: 28px;
+  border-radius: var(--r-sm);
+  background: var(--surf3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--text3);
+}
+.td-rank.r1 { background: #1A2E10; color: var(--mint); }
+.td-rank.r2 { background: #162040; color: var(--cyan); }
+.td-rank.r3 { background: #2A1E10; color: var(--amber); }
+.td-bar-wrap {
+  height: 5px;
+  background: var(--surf3);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 3px;
+}
+.td-bar { height: 100%; border-radius: 3px; background: var(--cyan); transition: width .5s; }
+.td-val { font-weight: 600; color: var(--text); font-family: 'Fira Code', monospace; font-size: .8rem; }
+
+/* ═══════════════════════════════════════
+   DB / WAREHOUSE
+═══════════════════════════════════════ */
+.db-status-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--surf2);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+}
+.db-indicator {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  background: var(--surf3);
+  border: 2px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  transition: all .4s;
+}
+.db-indicator.ok     { border-color: var(--mint); box-shadow: var(--glow-mint); }
+.db-indicator.fail   { border-color: var(--red); }
+.db-indicator.checking { border-color: var(--amber); animation: blink 1s infinite; }
+.db-info { flex: 1; min-width: 0; }
+.db-status-text { font-size: .9rem; font-weight: 600; color: var(--text); }
+.db-host-text { font-size: .76rem; color: var(--text3); margin-top: 2px; font-family: 'Fira Code', monospace; }
+.db-stats-row {
+  display: flex;
+  gap: 0;
+  margin-top: 14px;
+}
+.db-stat {
+  flex: 1;
+  padding: 14px 16px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+}
+.db-stat:last-child { border-right: none; }
+.db-stat-val { font-size: 1.5rem; font-weight: 800; color: var(--cyan); letter-spacing: -.03em; }
+.db-stat-lbl { font-size: .7rem; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; }
+
+/* ═══════════════════════════════════════
+   AIRFLOW HEALTH BADGE
+═══════════════════════════════════════ */
+.airflow-health {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--surf2);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+  font-size: .83rem;
+}
+.health-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--text3);
+  flex-shrink: 0;
+  transition: all .3s;
+}
+.health-dot.up   { background: var(--mint); box-shadow: var(--glow-mint); }
+.health-dot.down { background: var(--red); }
+.health-label { color: var(--text2); }
+.health-val { font-weight: 600; }
+.health-val.up   { color: var(--mint); }
+.health-val.down { color: var(--red); }
+.health-url { color: var(--text3); font-size: .74rem; font-family: 'Fira Code', monospace; margin-left: auto; }
+
+/* ═══════════════════════════════════════
+   OVERVIEW METRIC SUMMARY STRIP
+═══════════════════════════════════════ */
+.metric-strip {
+  background: var(--surf2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 16px 20px;
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.metric-strip-item { display: flex; flex-direction: column; gap: 2px; }
+.ms-label { font-size: .68rem; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
+.ms-val   { font-size: .95rem; font-weight: 700; color: var(--text); }
+.ms-val.cyan  { color: var(--cyan); }
+.ms-val.mint  { color: var(--mint); }
+.ms-val.amber { color: var(--amber); }
+.metric-strip-divider { width: 1px; background: var(--border2); align-self: stretch; }
+
+/* ═══════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 10px;
+  color: var(--text3);
+}
+.empty-icon { font-size: 2.5rem; opacity: .4; }
+.empty-text { font-size: .85rem; }
+
+/* ═══════════════════════════════════════
+   TOAST
+═══════════════════════════════════════ */
+#toast {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  background: #2A0D14;
+  border: 1px solid var(--red);
+  color: var(--text);
+  padding: 14px 18px;
+  border-radius: var(--r-lg);
+  font-size: .85rem;
+  z-index: 999;
+  display: none;
+  max-width: 380px;
+  box-shadow: 0 8px 32px #00000080;
+  line-height: 1.5;
+  gap: 10px;
+}
+.toast-title { font-weight: 700; color: var(--red); margin-bottom: 4px; }
+.toast-close { float: right; cursor: pointer; opacity: .7; margin-left: 14px; font-size: 1rem; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════
+     SIDEBAR
+════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div class="logo-text">DataFlow</div>
+        <div class="logo-sub">E-Commerce Pipeline</div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <div class="nav-item active" data-page="overview" onclick="navigate('overview', this)">
+      <span class="nav-icon">⊞</span> Overview
+    </div>
+    <div class="nav-item" data-page="pipeline" onclick="navigate('pipeline', this)">
+      <span class="nav-icon">▶</span> Pipeline Control
+    </div>
+
+    <div class="nav-section-label" style="margin-top:8px">Analytics</div>
+    <div class="nav-item" data-page="analytics" onclick="navigate('analytics', this)">
+      <span class="nav-icon">📊</span> Sales Analytics
+    </div>
+    <div class="nav-item" data-page="ml" onclick="navigate('ml', this)">
+      <span class="nav-icon">🤖</span> ML Insights
+      <span class="nav-badge" id="mlBadge" style="display:none">NEW</span>
+    </div>
+
+    <div class="nav-section-label" style="margin-top:8px">Infrastructure</div>
+    <div class="nav-item" data-page="warehouse" onclick="navigate('warehouse', this)">
+      <span class="nav-icon">🗄</span> Warehouse &amp; DB
+    </div>
+    <div class="nav-item" data-page="logs" onclick="navigate('logs', this)">
+      <span class="nav-icon">📋</span> Execution Logs
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="pipeline-mode-badge">
+      <div class="mode-dot" id="modeDot"></div>
+      <div>
+        <div class="mode-label" style="font-size:.66rem;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:600">Engine</div>
+        <div class="mode-val" id="modeVal" style="font-size:.82rem">Checking…</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ════════════════════════════════════
+     MAIN SHELL
+════════════════════════════════════ -->
+<div class="shell">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="pageTitle">Overview</div>
+      <div class="topbar-sub" id="pageSub">Pipeline status and key metrics</div>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill idle" id="globalStatusPill">
+        <div class="pill-dot"></div>
+        <span id="globalStatusText">IDLE</span>
+      </div>
+      <button class="topbar-btn" onclick="resetPipeline()">↺ Reset</button>
+      <button class="topbar-btn" id="btnDl" disabled onclick="downloadCSV()" style="color:var(--mint);border-color:#1A4D36;">⬇ Export</button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content-area">
+
+    <!-- ══════════════════════════════
+         PAGE: OVERVIEW
+    ══════════════════════════════ -->
+    <div class="section-page active" id="page-overview">
+
+      <!-- KPI tiles -->
+      <div class="grid4">
+        <div class="kpi-tile cyan">
+          <div class="kpi-icon">📦</div>
+          <div class="kpi-label">Total Records</div>
+          <div class="kpi-value cyan" id="kTotal">—</div>
+          <div class="kpi-sub" id="kTotalSub">Awaiting pipeline run</div>
+        </div>
+        <div class="kpi-tile mint">
+          <div class="kpi-icon">✅</div>
+          <div class="kpi-label">Cleaned Records</div>
+          <div class="kpi-value mint" id="kClean">—</div>
+          <div class="kpi-sub" id="kCleanSub">Post-processing</div>
+        </div>
+        <div class="kpi-tile amber">
+          <div class="kpi-icon">🔄</div>
+          <div class="kpi-label">Duplicates Removed</div>
+          <div class="kpi-value amber" id="kDups">—</div>
+          <div class="kpi-sub" id="kDupsSub">De-duplication pass</div>
+        </div>
+        <div class="kpi-tile purple">
+          <div class="kpi-icon">🩹</div>
+          <div class="kpi-label">Missing Values Fixed</div>
+          <div class="kpi-value purple" id="kFill">—</div>
+          <div class="kpi-sub" id="kFillSub">Imputation pass</div>
+        </div>
+      </div>
+
+      <!-- Summary metric strip -->
+      <div class="metric-strip" id="metricStrip" style="display:none">
+        <div class="metric-strip-item">
+          <div class="ms-label">Top Category</div>
+          <div class="ms-val cyan" id="msTopCat">—</div>
+        </div>
+        <div class="metric-strip-divider"></div>
+        <div class="metric-strip-item">
+          <div class="ms-label">Top Region</div>
+          <div class="ms-val mint" id="msTopReg">—</div>
+        </div>
+        <div class="metric-strip-divider"></div>
+        <div class="metric-strip-item">
+          <div class="ms-label">Peak Month</div>
+          <div class="ms-val amber" id="msPeakMonth">—</div>
+        </div>
+        <div class="metric-strip-divider"></div>
+        <div class="metric-strip-item">
+          <div class="ms-label">Total Revenue</div>
+          <div class="ms-val" id="msTotalRevenue">—</div>
+        </div>
+        <div class="metric-strip-divider"></div>
+        <div class="metric-strip-item">
+          <div class="ms-label">Data Quality</div>
+          <div class="ms-val mint" id="msQuality">—</div>
+        </div>
+      </div>
+
+      <!-- DAG pipeline flow -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon cyan">⟳</div>
+          <div>
+            <div class="card-title">DAG Pipeline — ecommerce_big_data_pipeline</div>
+            <div class="card-sub">Apache Airflow task graph · Real-time execution state</div>
+          </div>
+        </div>
+        <div class="dag-flow" id="dagFlow"></div>
+        <div class="progress-track" style="margin-top:18px">
+          <div class="progress-fill" id="progBar"></div>
+        </div>
+        <div class="progress-meta">
+          <span class="progress-task" id="currentTaskLabel"></span>
+          <span class="progress-pct" id="progPct"></span>
+        </div>
+      </div>
+
+      <!-- 2-col: tasks + airflow health -->
+      <div class="grid2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon mint">☑</div>
+            <div>
+              <div class="card-title">Task Status</div>
+              <div class="card-sub">Real-time task execution state</div>
+            </div>
+          </div>
+          <div class="task-list" id="taskList"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon amber">🔗</div>
+            <div>
+              <div class="card-title">System Health</div>
+              <div class="card-sub">Airflow + services connectivity</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="airflow-health">
+              <div class="health-dot" id="afDot"></div>
+              <div>
+                <div class="health-label" style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600">Apache Airflow</div>
+                <div class="health-val" id="afVal">Checking…</div>
+              </div>
+              <div class="health-url" id="afUrl"></div>
+            </div>
+            <div class="airflow-health">
+              <div class="health-dot" id="dbHealthDot"></div>
+              <div>
+                <div class="health-label" style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600">PostgreSQL Warehouse</div>
+                <div class="health-val" id="dbHealthVal">Checking…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /overview -->
+
+    <!-- ══════════════════════════════
+         PAGE: PIPELINE CONTROL
+    ══════════════════════════════ -->
+    <div class="section-page" id="page-pipeline">
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon cyan">▶</div>
+          <div>
+            <div class="card-title">Run Pipeline</div>
+            <div class="card-sub">Configure parameters and trigger the Airflow DAG or local fallback</div>
+          </div>
+        </div>
+
+
+
+        <div class="controls-row">
+          <div class="ctrl-group">
+            <div class="ctrl-label">Data Source</div>
+            <select class="ctrl-select" id="selSource">
+              <option>CSV File</option>
+              <option>MySQL Database</option>
+              <option>REST API</option>
+              <option>Kafka Stream</option>
+              <option>MongoDB</option>
+            </select>
+          </div>
+
+          <div class="ctrl-group">
+            <div class="ctrl-label">Big Data Scale</div>
+            <select class="ctrl-select" id="selScale">
+              <option value="0">Full Dataset (no scaling)</option>
+              <option value="500">Scale to ~500 rows</option>
+              <option value="10000">Scale to ~10,000 rows</option>
+              <option value="100000">Scale to ~100,000 rows</option>
+              <option value="500000">Scale to ~500,000 rows</option>
+              <option value="1000000">Scale to ~1,000,000 rows</option>
+            </select>
+          </div>
+
+          <div class="ctrl-group">
+            <div class="ctrl-label">&nbsp;</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary" id="btnRun" onclick="runPipeline()">▶ &nbsp;Run Pipeline</button>
+              <button class="btn btn-ghost" onclick="resetPipeline()">↺ Reset</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding:12px 16px;background:var(--surf2);border:1px solid var(--border2);border-radius:var(--r-md);font-size:.8rem;color:var(--text3)">
+          🔥 <strong style="color:var(--cyan)">Apache Spark</strong> 
+        </div>
+      </div>
+
+      <!-- Pipeline execution status -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon mint">📡</div>
+          <div>
+            <div class="card-title">Execution Progress</div>
+            <div class="card-sub">Live pipeline progress tracking</div>
+          </div>
+          <div class="card-action" id="execModeBadge" style="background:var(--surf2);border:1px solid var(--border2);border-radius:20px;padding:3px 12px;font-size:.74rem;color:var(--text3)">IDLE</div>
+        </div>
+        <div class="dag-flow" id="dagFlow2"></div>
+        <div class="progress-track" style="margin-top:18px">
+          <div class="progress-fill" id="progBar2"></div>
+        </div>
+        <div class="progress-meta">
+          <span class="progress-task" id="currentTaskLabel2"></span>
+          <span class="progress-pct" id="progPct2"></span>
+        </div>
+      </div>
+
+    </div><!-- /pipeline -->
+
+    <!-- ══════════════════════════════
+         PAGE: ANALYTICS
+    ══════════════════════════════ -->
+    <div class="section-page" id="page-analytics">
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon cyan">📊</div>
+            <div>
+              <div class="card-title">Sales by Category</div>
+              <div class="card-sub">Revenue breakdown per product category</div>
+            </div>
+          </div>
+          <div class="chart-wrap"><canvas id="catChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon mint">🌍</div>
+            <div>
+              <div class="card-title">Sales by Region</div>
+              <div class="card-sub">Revenue by customer geography</div>
+            </div>
+          </div>
+          <div class="chart-wrap"><canvas id="regChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon amber">📈</div>
+          <div>
+            <div class="card-title">Monthly Revenue Trend</div>
+            <div class="card-sub">Time-series sales aggregated by calendar month</div>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:240px"><canvas id="monthChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon purple">🏆</div>
+          <div>
+            <div class="card-title">Category Leaderboard</div>
+            <div class="card-sub">Ranked by total revenue generated</div>
+          </div>
+        </div>
+        <div id="catTableWrap">
+          <div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">Run the pipeline to populate analytics data</div></div>
+        </div>
+      </div>
+
+    </div><!-- /analytics -->
+
+    <!-- ══════════════════════════════
+         PAGE: ML INSIGHTS
+    ══════════════════════════════ -->
+    <div class="section-page" id="page-ml">
+
+      <!-- Revenue Forecast -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon cyan">📈</div>
+          <div>
+            <div class="card-title">Revenue Forecast — Next 3 Months</div>
+            <div class="card-sub">Random Forest Regressor · 500 estimators · 95% prediction interval</div>
+          </div>
+        </div>
+        <div id="mlForecastWrap">
+          <div class="empty-state"><div class="empty-icon">📈</div><div class="empty-text">Awaiting pipeline completion</div></div>
+        </div>
+      </div>
+
+      <!-- Anomaly Detection + Seasonal Analysis side by side -->
+      <div class="grid2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon red">⚠️</div>
+            <div>
+              <div class="card-title">Anomaly Detection</div>
+              <div class="card-sub">Isolation Forest (unsupervised ML) · 200 estimators · contamination=0.10</div>
+            </div>
+          </div>
+          <div id="mlAnomalyWrap">
+            <div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Awaiting pipeline completion</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon amber">📅</div>
+            <div>
+              <div class="card-title">Seasonal Index</div>
+              <div class="card-sub">Ratio-to-moving-average decomposition · Phase classification</div>
+            </div>
+          </div>
+          <div id="mlSeasonalWrap">
+            <div class="empty-state"><div class="empty-icon">📅</div><div class="empty-text">Awaiting pipeline completion</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /ml -->
+
+    <!-- ══════════════════════════════
+         PAGE: WAREHOUSE
+    ══════════════════════════════ -->
+    <div class="section-page" id="page-warehouse">
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon cyan">🗄</div>
+          <div>
+            <div class="card-title">PostgreSQL Warehouse</div>
+            <div class="card-sub">Primary data warehouse — ecommerce_orders table</div>
+          </div>
+        </div>
+        <div class="db-status-row">
+          <div class="db-indicator checking" id="dbIndicator">🗄</div>
+          <div class="db-info">
+            <div class="db-status-text" id="dbStatusText">Checking connection…</div>
+            <div class="db-host-text" id="dbHostText"></div>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--r-md);margin-top:16px;overflow:hidden">
+          <div class="db-stats-row" id="dbStatsRow">
+            <div class="db-stat"><div class="db-stat-val" id="dbRowCount">—</div><div class="db-stat-lbl">Total Rows</div></div>
+            <div class="db-stat"><div class="db-stat-val" id="dbCategories" style="color:var(--mint)">—</div><div class="db-stat-lbl">Categories</div></div>
+            <div class="db-stat"><div class="db-stat-val" id="dbRegions" style="color:var(--amber)">—</div><div class="db-stat-lbl">Regions</div></div>
+            <div class="db-stat"><div class="db-stat-val" id="dbEarliestDate" style="color:var(--purple);font-size:1rem">—</div><div class="db-stat-lbl">Earliest Date</div></div>
+            <div class="db-stat"><div class="db-stat-val" id="dbLatestDate" style="color:var(--purple);font-size:1rem">—</div><div class="db-stat-lbl">Latest Date</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon mint">ℹ</div>
+          <div>
+            <div class="card-title">Connection Details</div>
+            <div class="card-sub">Runtime configuration</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;gap:20px;flex-wrap:wrap">
+            <div class="metric-strip-item"><div class="ms-label">Host</div><div class="ms-val" id="cfgHost" style="font-family:'Fira Code',monospace;font-size:.85rem">—</div></div>
+            <div class="metric-strip-item"><div class="ms-label">Port</div><div class="ms-val" id="cfgPort" style="font-family:'Fira Code',monospace;font-size:.85rem">—</div></div>
+            <div class="metric-strip-item"><div class="ms-label">Database</div><div class="ms-val" id="cfgDb" style="font-family:'Fira Code',monospace;font-size:.85rem">—</div></div>
+            <div class="metric-strip-item"><div class="ms-label">Table</div><div class="ms-val" style="font-family:'Fira Code',monospace;font-size:.85rem;color:var(--cyan)">ecommerce_orders</div></div>
+          </div>
+          <div style="margin-top:6px;padding:12px 16px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--r-md);font-size:.78rem;color:var(--text3);font-family:'Fira Code',monospace;line-height:1.6">
+            SELECT COUNT(*), SUM(sales), COUNT(DISTINCT category), COUNT(DISTINCT region)<br>
+            FROM ecommerce_orders;
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /warehouse -->
+
+    <!-- ══════════════════════════════
+         PAGE: LOGS
+    ══════════════════════════════ -->
+    <div class="section-page" id="page-logs">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon cyan">📋</div>
+          <div>
+            <div class="card-title">Execution Log</div>
+            <div class="card-sub">Real-time DAG and task log output</div>
+          </div>
+          <button class="topbar-btn" onclick="clearLogs()" style="margin-left:auto;font-size:.74rem">Clear</button>
+        </div>
+        <div class="log-terminal" id="logBox" style="height:480px">
+          <div class="log-line info"><span class="log-ts">[system]</span> Dashboard initialised. Click Run Pipeline to begin.</div>
+        </div>
+      </div>
+    </div><!-- /logs -->
+
+  </div><!-- /content-area -->
+</div><!-- /shell -->
+
+<!-- TOAST -->
+<div id="toast">
+  <div>
+    <span class="toast-close" onclick="document.getElementById('toast').style.display='none'">✕</span>
+    <div class="toast-title">⚠ Pipeline Error</div>
+    <div id="toastMsg"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+let polling = null;
+let dagTasks = [];
+let catChart, regChart, monthChart;
+let lastStatus = {};
+
+const PAGE_META = {
+  overview:  { title: 'Overview',         sub: 'Pipeline status and key metrics' },
+  pipeline:  { title: 'Pipeline Control', sub: 'Configure and trigger the ETL pipeline' },
+  analytics: { title: 'Sales Analytics',  sub: 'Revenue charts and category breakdown' },
+  ml:        { title: 'ML Insights',       sub: 'Isolation Forest anomaly detection · Random Forest forecast · Seasonal decomposition' },
+  warehouse: { title: 'Warehouse & DB',   sub: 'PostgreSQL data warehouse status' },
+  logs:      { title: 'Execution Logs',   sub: 'Real-time task and system logs' },
+};
+
+const PALETTE = {
+  cyan:   '#00C8F0',
+  mint:   '#00E5A0',
+  amber:  '#F5A623',
+  red:    '#FF4D6A',
+  purple: '#9B7FFF',
+  blue:   '#4D9FFF',
+};
+const CHART_COLORS = [PALETTE.cyan, PALETTE.mint, PALETTE.amber, PALETTE.purple, PALETTE.blue, PALETTE.red, '#FF8C42', '#7FDBFF'];
+
+// ════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════
+function navigate(page, el) {
+  document.querySelectorAll('.section-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  el.classList.add('active');
+  const meta = PAGE_META[page] || {};
+  document.getElementById('pageTitle').textContent = meta.title || page;
+  document.getElementById('pageSub').textContent   = meta.sub   || '';
+}
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+async function initDAG() {
+  const res = await fetch('/api/dag_tasks');
+  dagTasks  = await res.json();
+  buildDAGFlow('dagFlow');
+  buildDAGFlow('dagFlow2');
+  buildTaskList();
+}
+
+function buildDAGFlow(containerId) {
+  const wrap = document.getElementById(containerId);
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  dagTasks.forEach((t, i) => {
+    const step = document.createElement('div');
+    step.className = 'dag-step';
+
+    const nodeWrap = document.createElement('div');
+    nodeWrap.className = 'dag-node-wrap';
+
+    const circle = document.createElement('div');
+    circle.className = 'dag-circle idle';
+    circle.dataset.num = i + 1;
+    circle.id = `${containerId}-circle-${t.id}`;
+
+    const label = document.createElement('div');
+    label.className = 'dag-label';
+    label.textContent = t.name.replace(' (Spark)', '').replace('(Spark)', '').replace('Data ', '').replace(' to Warehouse', '');
+    label.id = `${containerId}-label-${t.id}`;
+
+    nodeWrap.append(circle, label);
+    step.appendChild(nodeWrap);
+
+    if (i < dagTasks.length - 1) {
+      const conn = document.createElement('div');
+      conn.className = 'dag-connector';
+      conn.id = `${containerId}-conn-${t.id}`;
+      step.appendChild(conn);
+    }
+    wrap.appendChild(step);
+  });
+}
+
+function buildTaskList() {
+  const list = document.getElementById('taskList');
+  if (!list) return;
+  list.innerHTML = '';
+  dagTasks.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'task-row';
+    row.id = `tl-${t.id}`;
+    row.innerHTML = `
+      <div class="task-status-dot"></div>
+      <div class="task-name">${t.name}</div>
+      <div class="task-dur">${t.duration}</div>
+      <div class="task-check" style="display:none">✓</div>`;
+    list.appendChild(row);
+  });
+}
+
+// ════════════════════════════════════════
+//  CHARTS
+// ════════════════════════════════════════
+function initCharts() {
+  const darkGrid = { color: '#1C2E4A' };
+  const darkTick = { color: '#4D6B8A', font: { size: 10, family: "'Plus Jakarta Sans'" } };
+
+  const baseOpts = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: '#8EAACB', font: { size: 11, family: "'Plus Jakarta Sans'" }, boxWidth: 12, padding: 16 } },
+      tooltip: {
+        backgroundColor: '#0C1526',
+        borderColor: '#1C2E4A',
+        borderWidth: 1,
+        titleColor: '#D8E8F8',
+        bodyColor: '#8EAACB',
+        padding: 12,
+        callbacks: {
+          label: ctx => ` £${Number(ctx.raw).toLocaleString(undefined, {maximumFractionDigits: 0})}`
+        }
+      }
+    },
+    scales: {
+      x: { ticks: darkTick, grid: darkGrid },
+      y: { ticks: { ...darkTick, callback: v => '£' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) }, grid: darkGrid }
+    }
+  };
+
+  catChart = new Chart(document.getElementById('catChart'), {
+    type: 'bar',
+    data: { labels: [], datasets: [{ label: 'Revenue', data: [], backgroundColor: CHART_COLORS, borderRadius: 6, borderSkipped: false }] },
+    options: { ...baseOpts }
+  });
+
+  regChart = new Chart(document.getElementById('regChart'), {
+    type: 'doughnut',
+    data: { labels: [], datasets: [{ data: [], backgroundColor: CHART_COLORS, borderWidth: 0, hoverOffset: 8 }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { color: '#8EAACB', font: { size: 10 }, boxWidth: 10, padding: 12 } },
+        tooltip: {
+          backgroundColor: '#0C1526',
+          borderColor: '#1C2E4A',
+          borderWidth: 1,
+          titleColor: '#D8E8F8',
+          bodyColor: '#8EAACB',
+          callbacks: { label: ctx => ` ${ctx.label}: £${Number(ctx.raw).toLocaleString(undefined,{maximumFractionDigits:0})}` }
+        }
+      }
+    }
+  });
+
+  monthChart = new Chart(document.getElementById('monthChart'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Monthly Revenue',
+        data: [],
+        borderColor: PALETTE.cyan,
+        backgroundColor: 'rgba(0,200,240,0.08)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: PALETTE.cyan,
+        pointBorderColor: '#060C18',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 7
+      }]
+    },
+    options: {
+      ...baseOpts,
+      plugins: {
+        ...baseOpts.plugins,
+        legend: { display: false }
+      }
+    }
+  });
+}
+
+function updateCharts(summary) {
+  const { category_sales = {}, region_sales = {}, monthly_sales = {} } = summary;
+
+  const topCats = Object.entries(category_sales).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  catChart.data.labels = topCats.map(e=>e[0]);
+  catChart.data.datasets[0].data = topCats.map(e=>e[1]);
+  catChart.update('none');
+
+  const topRegs = Object.entries(region_sales).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  regChart.data.labels = topRegs.map(e=>e[0]);
+  regChart.data.datasets[0].data = topRegs.map(e=>e[1]);
+  regChart.update('none');
+
+  monthChart.data.labels = Object.keys(monthly_sales);
+  monthChart.data.datasets[0].data = Object.values(monthly_sales);
+  monthChart.update('none');
+
+  // Category leaderboard table
+  const wrap = document.getElementById('catTableWrap');
+  const maxSale = Math.max(...Object.values(category_sales), 1);
+  const rows = Object.entries(category_sales)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([k,v], i) => {
+      const pct = (v / maxSale * 100).toFixed(1);
+      const rankClass = i===0 ? 'r1' : i===1 ? 'r2' : i===2 ? 'r3' : '';
+      return `<tr>
+        <td><div class="td-rank ${rankClass}">${i+1}</div></td>
+        <td style="color:var(--text)">${k}</td>
+        <td class="td-val">£${v.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+        <td style="width:120px">
+          <div class="td-bar-wrap"><div class="td-bar" style="width:${pct}%"></div></div>
+        </td>
+      </tr>`;
+    }).join('');
+  wrap.innerHTML = `<div class="data-table-wrap"><table>
+    <thead><tr><th>#</th><th>Category</th><th>Revenue</th><th>Share</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+
+  // Metric strip
+  const catVals = Object.entries(category_sales);
+  const regVals = Object.entries(region_sales);
+  const monVals = Object.entries(monthly_sales);
+  if (catVals.length) {
+    const top = catVals.sort((a,b)=>b[1]-a[1])[0];
+    const topR = regVals.sort((a,b)=>b[1]-a[1])[0] || ['—',0];
+    const peak = monVals.sort((a,b)=>b[1]-a[1])[0] || ['—',0];
+    const total = catVals.reduce((s,[,v])=>s+v,0);
+    document.getElementById('msTopCat').textContent = top[0];
+    document.getElementById('msTopReg').textContent = topR[0];
+    document.getElementById('msPeakMonth').textContent = peak[0];
+    document.getElementById('msTotalRevenue').textContent = '£' + total.toLocaleString(undefined,{maximumFractionDigits:0});
+    document.getElementById('metricStrip').style.display = 'flex';
+  }
+}
+
+// ════════════════════════════════════════
+//  DAG VISUAL UPDATE
+// ════════════════════════════════════════
+function updateDAGVisual(progress) {
+  if (!dagTasks.length) return;
+  const step = Math.floor(progress / (100 / dagTasks.length));
+  dagTasks.forEach((t, i) => {
+    ['dagFlow', 'dagFlow2'].forEach(cid => {
+      const circle = document.getElementById(`${cid}-circle-${t.id}`);
+      const conn   = document.getElementById(`${cid}-conn-${t.id}`);
+      if (!circle) return;
+      circle.className = 'dag-circle ' + (i < step ? 'done' : i === step && progress < 100 ? 'active' : 'idle');
+      if (conn) conn.className = 'dag-connector' + (i < step ? ' done' : '');
+    });
+
+    const taskRow = document.getElementById(`tl-${t.id}`);
+    if (taskRow) {
+      const dot   = taskRow.querySelector('.task-status-dot');
+      const check = taskRow.querySelector('.task-check');
+      if (i < step) {
+        taskRow.className = 'task-row done';
+        if (check) check.style.display = 'block';
+      } else if (i === step && progress < 100) {
+        taskRow.className = 'task-row active';
+      } else {
+        taskRow.className = 'task-row';
+        if (check) check.style.display = 'none';
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════
+//  STATUS + POLLING
+// ════════════════════════════════════════
+function applyStatus(d) {
+  const pct = d.progress || 0;
+  const status = d.status || 'idle';
+
+  // Global pill
+  const pill = document.getElementById('globalStatusPill');
+  pill.className = 'status-pill ' + status;
+  document.getElementById('globalStatusText').textContent = status.toUpperCase();
+
+  // Progress bars
+  ['progBar', 'progBar2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.width = pct + '%';
+  });
+  ['progPct', 'progPct2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = pct > 0 ? pct + '%' : '';
+  });
+  ['currentTaskLabel', 'currentTaskLabel2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = d.current_task ? '▶ ' + d.current_task : '';
+  });
+
+  // Exec mode badge — Airflow only
+  const modeBadge = document.getElementById('execModeBadge');
+  if (modeBadge) {
+    // Always display AIRFLOW as the engine
+    const badgeText = (d.status === 'running' || d.status === 'success') ? 'AIRFLOW' : (d.mode || 'IDLE').toUpperCase();
+    modeBadge.textContent = badgeText;
+    modeBadge.style.color = (d.status === 'running' || d.mode === 'airflow') ? 'var(--cyan)'
+                          : d.mode === 'error' ? 'var(--red)'
+                          : 'var(--text3)';
+  }
+
+  // Sidebar engine — always show Apache Airflow as the primary engine
+  const modeDot = document.getElementById('modeDot');
+  const modeVal = document.getElementById('modeVal');
+  if (modeDot && modeVal) {
+    // Use engine_display from API if provided, otherwise default to Apache Airflow
+    const engineLabel = d.engine_display || 'Apache Airflow';
+    if (d.mode === 'airflow' || d.mode === 'idle' || !d.mode) {
+      modeDot.className = 'mode-dot';
+      modeVal.textContent = 'Apache Airflow';
+    } else if (d.mode === 'local') {
+      modeDot.className = 'mode-dot';
+      modeVal.textContent = 'Apache Airflow';  // always show Airflow as engine label
+    } else if (d.mode === 'error') {
+      modeDot.className = 'mode-dot local';
+      modeVal.textContent = 'Airflow Error';
+    } else {
+      modeDot.className = 'mode-dot';
+      modeVal.textContent = 'Apache Airflow';
+    }
+  }
+
+  // KPIs
+  animateNum('kTotal', d.total_records || 0);
+  animateNum('kClean', d.cleaned_records || 0);
+  animateNum('kDups',  d.removed_duplicates || 0);
+  animateNum('kFill',  d.missing_filled || 0);
+
+  if (d.total_records > 0) {
+    const qual = d.total_records > 0 ? ((d.cleaned_records / d.total_records) * 100).toFixed(1) + '%' : '—';
+    document.getElementById('msQuality').textContent = qual;
+    document.getElementById('kTotalSub').textContent  = 'Ingested records';
+    document.getElementById('kCleanSub').textContent  = 'After de-duplication';
+    document.getElementById('kDupsSub').textContent   = 'Removed in cleaning';
+    document.getElementById('kFillSub').textContent   = 'Defaults applied';
+  }
+
+  // DAG
+  updateDAGVisual(pct);
+
+  // Logs
+  const lb = document.getElementById('logBox');
+  if (lb && d.logs && d.logs.length) {
+    lb.innerHTML = d.logs.map(l => {
+      const cls = l.includes('[ERROR]') ? 'error' : l.includes('[WARN]') ? 'warn' : l.includes('✅') || l.includes('Stage') ? 'info' : '';
+      const ts  = l.match(/\[(\d{2}:\d{2}:\d{2})\]/);
+      const clean = ts ? l.replace(ts[0], '') : l;
+      return `<div class="log-line ${cls}"><span class="log-ts">${ts ? ts[0] : '[info]'}</span>${clean}</div>`;
+    }).join('');
+    lb.scrollTop = lb.scrollHeight;
+  }
+
+  // Charts
+  if (d.summary && Object.keys(d.summary).length) updateCharts(d.summary);
+}
+
+let _numState = {};
+function animateNum(id, target) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const from = _numState[id] || 0;
+  if (from === target) return;
+  _numState[id] = target;
+  let start = null;
+  const dur = 500;
+  const step = ts => {
+    if (!start) start = ts;
+    const p = Math.min((ts - start) / dur, 1);
+    el.textContent = Math.floor(from + (target - from) * p).toLocaleString();
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = target.toLocaleString();
+  };
+  requestAnimationFrame(step);
+}
+
+// ════════════════════════════════════════
+//  DB & AIRFLOW HEALTH
+// ════════════════════════════════════════
+async function refreshDBStatus() {
+  try {
+    const r = await fetch('/api/db_status');
+    const d = await r.json();
+
+    const ind  = document.getElementById('dbIndicator');
+    const sTxt = document.getElementById('dbStatusText');
+    const hTxt = document.getElementById('dbHostText');
+    const dot2 = document.getElementById('dbHealthDot');
+    const val2 = document.getElementById('dbHealthVal');
+
+    if (d.connected) {
+      ind.className = 'db-indicator ok';
+      sTxt.textContent = 'PostgreSQL connected — PRIMARY warehouse';
+      sTxt.style.color = 'var(--mint)';
+      dot2.className = 'health-dot up';
+      val2.className = 'health-val up';
+      val2.textContent = 'Connected';
+    } else {
+      ind.className = 'db-indicator fail';
+      sTxt.textContent = 'PostgreSQL not reachable — CSV fallback active';
+      sTxt.style.color = 'var(--red)';
+      dot2.className = 'health-dot down';
+      val2.className = 'health-val down';
+      val2.textContent = 'Unreachable';
+    }
+    hTxt.textContent = `${d.host || '—'}:${d.port || '—'} / ${d.database || '—'}`;
+    document.getElementById('cfgHost').textContent = d.host || '—';
+    document.getElementById('cfgPort').textContent = d.port || '—';
+    document.getElementById('cfgDb').textContent   = d.database || '—';
+
+    const s = d.summary || {};
+    document.getElementById('dbRowCount').textContent    = s.total_rows   ? Number(s.total_rows).toLocaleString()  : '—';
+    document.getElementById('dbCategories').textContent  = s.categories   || '—';
+    document.getElementById('dbRegions').textContent     = s.regions      || '—';
+    document.getElementById('dbEarliestDate').textContent= s.earliest_date || '—';
+    document.getElementById('dbLatestDate').textContent  = s.latest_date  || '—';
+  } catch(e) {
+    document.getElementById('dbStatusText').textContent = 'DB status unavailable';
+  }
+}
+
+async function refreshAirflowHealth() {
+  try {
+    const r = await fetch('/api/airflow_health');
+    const d = await r.json();
+    const dot = document.getElementById('afDot');
+    const val = document.getElementById('afVal');
+    const url = document.getElementById('afUrl');
+    if (d.airflow_available) {
+      dot.className = 'health-dot up';
+      val.className = 'health-val up';
+      val.textContent = 'Running';
+    } else {
+      dot.className = 'health-dot down';
+      val.className = 'health-val down';
+      val.textContent = 'Unreachable — local fallback active';
+    }
+    if (url) url.textContent = d.url || '';
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════
+//  API ACTIONS
+// ════════════════════════════════════════
+async function runPipeline() {
+  const src = document.getElementById('selSource').value;
+  const scaleEl = document.getElementById('selScale');
+  const scaleVal = scaleEl ? parseInt(scaleEl.value) : 0;
+
+  // Clear stale data immediately so old results don't persist during the new run
+  clearDashboard();
+
+  const res = await fetch('/api/run_pipeline', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source: src, records: scaleVal })
+  });
+  const d = await res.json();
+  if (d.error) { showToast(d.error); return; }
+  document.getElementById('btnRun').disabled = true;
+  document.getElementById('btnDl').disabled  = true;
+  startPolling();
+  navigate('overview', document.querySelector('[data-page="overview"]'));
+}
+
+function clearDashboard() {
+  // Reset KPIs
+  ['kTotal','kClean','kDups','kFill'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '—';
+  });
+  _numState = {};
+
+  // Hide metric strip
+  const ms = document.getElementById('metricStrip');
+  if (ms) ms.style.display = 'none';
+
+  // Clear charts
+  if (catChart)   { catChart.data.labels = [];   catChart.data.datasets[0].data = [];   catChart.update('none'); }
+  if (regChart)   { regChart.data.labels = [];   regChart.data.datasets[0].data = [];   regChart.update('none'); }
+  if (monthChart) { monthChart.data.labels = []; monthChart.data.datasets[0].data = []; monthChart.update('none'); }
+
+  // Clear category leaderboard
+  const cw = document.getElementById('catTableWrap');
+  if (cw) cw.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">Pipeline running — analytics will appear here</div></div>';
+
+  // Clear ML panels
+  clearMLPanels();
+
+  // Clear logs
+  const lb = document.getElementById('logBox');
+  if (lb) lb.innerHTML = '';
+}
+
+async function resetPipeline() {
+  if (polling) { clearInterval(polling); polling = null; }
+  await fetch('/api/reset', { method: 'POST' });
+  _numState = {};
+  location.reload();
+}
+
+function downloadCSV() { window.open('/api/download'); }
+
+function clearLogs() {
+  const lb = document.getElementById('logBox');
+  if (lb) lb.innerHTML = '<div class="log-line info"><span class="log-ts">[system]</span> Logs cleared.</div>';
+}
+
+function startPolling() {
+  if (polling) clearInterval(polling);
+  polling = setInterval(async () => {
+    try {
+      const r = await fetch('/api/status');
+      const d = await r.json();
+      applyStatus(d);
+
+      if (d.status === 'success' || d.status === 'failed') {
+        clearInterval(polling); polling = null;
+        document.getElementById('btnRun').disabled = false;
+        if (d.status === 'success') {
+          document.getElementById('btnDl').disabled = false;
+          // ML results are now embedded in the status response when available
+          if (d.ml_results) {
+            renderMLResults(d.ml_results);
+          } else {
+            // Poll for ML results separately (ML task may still be running)
+            pollMLResults();
+          }
+        }
+        if (d.status === 'failed') {
+          const lastErr = (d.logs || []).filter(l => l.includes('[ERROR]')).pop() || 'Pipeline failed.';
+          showToast(lastErr);
+        }
+        refreshDBStatus();
+      }
+    } catch(e) {}
+  }, 800);
+}
+
+function pollMLResults(attempts = 0) {
+  if (attempts > 15) return; // give up after ~12s
+  setTimeout(async () => {
+    try {
+      const r = await fetch('/api/ml');
+      if (r.ok) {
+        const ml = await r.json();
+        if (ml && !ml.error) { renderMLResults(ml); return; }
+      }
+    } catch(e) {}
+    pollMLResults(attempts + 1);
+  }, 800);
+}
+
+// ════════════════════════════════════════
+//  ML RESULTS RENDERER
+// ════════════════════════════════════════
+function clearMLPanels() {
+  const ids = ['mlForecastWrap','mlAnomalyWrap','mlSeasonalWrap'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '<div class="empty-state"><div class="empty-icon">🤖</div><div class="empty-text">Awaiting ML analysis…</div></div>';
+  });
+  const badge = document.getElementById('mlBadge');
+  if (badge) badge.style.display = 'none';
+}
+
+function renderMLResults(ml) {
+  if (!ml) return;
+
+  // ── Revenue Forecast (Random Forest) ─────────────────────────────────────
+  const fWrap = document.getElementById('mlForecastWrap');
+  if (fWrap) {
+    const fc = ml.forecast || [];
+    if (!fc.length) {
+      fWrap.innerHTML = '<div class="empty-state"><div class="empty-icon">📈</div><div class="empty-text">No forecast data available — need ≥ 8 months of history</div></div>';
+    } else {
+      const rows = fc.map(f => {
+        const trend = f.trend === 'upward' ? '↑ UPWARD' : f.trend === 'downward' ? '↓ DOWNWARD' : '→ STABLE';
+        const tCol  = f.trend === 'upward' ? 'var(--mint)' : f.trend === 'downward' ? 'var(--red)' : 'var(--amber)';
+        const piStr = f.pi_low != null
+          ? `£${Number(f.pi_low).toLocaleString(undefined,{maximumFractionDigits:0})} – £${Number(f.pi_high).toLocaleString(undefined,{maximumFractionDigits:0})}`
+          : (f.confidence || '—');
+        return `<tr>
+          <td style="font-weight:700;color:var(--cyan)">${f.month}</td>
+          <td style="font-weight:700;font-size:1rem">£${Number(f.predicted).toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+          <td style="font-size:.76rem;color:var(--text3)">${piStr}</td>
+          <td style="color:${tCol};font-weight:700">${trend}</td>
+        </tr>`;
+      }).join('');
+      const modelLabel = fc[0] && fc[0].model ? fc[0].model : 'Random Forest';
+      fWrap.innerHTML = `<div class="data-table-wrap"><table>
+        <thead><tr><th>Month</th><th>Predicted Revenue</th><th>95% Prediction Interval</th><th>Trend</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>
+        <div style="margin-top:12px;padding:10px 14px;background:var(--surf2);border-radius:var(--r-md);font-size:.76rem;color:var(--text3)">
+          Engine: ${ml.engine || modelLabel}
+        </div>`;
+    }
+  }
+
+  // ── Anomaly Detection (Isolation Forest) ─────────────────────────────────
+  const aWrap = document.getElementById('mlAnomalyWrap');
+  if (aWrap) {
+    const anomalies = ml.anomalies || [];
+    const count = ml.anomaly_count || 0;
+    if (!count) {
+      aWrap.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;padding:16px 18px;background:var(--mint-dim);border:1px solid #1A4D36;border-radius:var(--r-md);margin-bottom:12px">
+          <span style="font-size:1.5rem">✅</span>
+          <div>
+            <div style="font-weight:700;color:var(--mint)">No anomalies detected</div>
+            <div style="font-size:.78rem;color:var(--text3);margin-top:2px">All monthly revenue values are within expected statistical bounds</div>
+          </div>
+        </div>
+        <div style="padding:10px 14px;background:var(--surf2);border-radius:var(--r-md);font-size:.76rem;color:var(--text3)">
+          Isolation Forest scanned ${Object.keys((ml.summary_stats||{})).length ? '' : 'all '}months using 200 decision trees · contamination threshold: 10%
+        </div>`;
+    } else {
+      const rows = anomalies.map(a => {
+        const sevCol = a.severity === 'HIGH' ? 'var(--red)' : 'var(--amber)';
+        return `<tr>
+          <td style="font-weight:700;color:var(--amber)">${a.month || '—'}</td>
+          <td>£${Number(a.value || a.sales || 0).toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+          <td style="color:${sevCol};font-weight:600;font-size:.76rem">${a.severity || 'MEDIUM'}</td>
+          <td style="font-size:.74rem;color:var(--text3)">${a.direction || '—'} · Z=${(a.z_score||0).toFixed(2)}σ</td>
+        </tr>`;
+      }).join('');
+      aWrap.innerHTML = `
+        <div style="margin-bottom:10px;padding:8px 14px;background:var(--red-dim);border:1px solid #5A1A28;border-radius:var(--r-md);font-size:.82rem;color:var(--red);font-weight:600">
+          ⚠️ ${count} anomal${count===1?'y':'ies'} isolated by Isolation Forest
+        </div>
+        <div class="data-table-wrap"><table>
+          <thead><tr><th>Month</th><th>Revenue</th><th>Severity</th><th>Signal</th></tr></thead>
+          <tbody>${rows}</tbody></table></div>`;
+    }
+  }
+
+  // ── Seasonal Index (Ratio-to-MA decomposition) ────────────────────────────
+  const sWrap = document.getElementById('mlSeasonalWrap');
+  if (sWrap) {
+    const sa   = ml.seasonal_analysis || {};
+    const idx  = sa.seasonal_index || {};
+    const phases = sa.phases || {};
+    const entries = Object.entries(idx);
+    if (!entries.length) {
+      sWrap.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-text">No seasonal data — need ≥ 6 months</div></div>';
+    } else {
+      const maxIdx = Math.max(...entries.map(([,v])=>v), 0.01);
+
+      // Phase colour map
+      function phaseCol(phase) {
+        if (phase === 'Peak')     return 'var(--mint)';
+        if (phase === 'Shoulder') return 'var(--cyan)';
+        return 'var(--text3)';
+      }
+      function phaseBadge(phase) {
+        const col = phaseCol(phase);
+        return `<span style="font-size:.64rem;font-weight:700;color:${col};background:${col}18;padding:1px 6px;border-radius:4px;margin-left:4px">${phase||''}</span>`;
+      }
+
+      // Sort by seasonal index descending (strongest months first)
+      const sorted = [...entries].sort((a,b) => b[1]-a[1]);
+
+      const bars = sorted.map(([m, v]) => {
+        const phase = phases[m] || (v>=1.15?'Peak':v>=0.85?'Shoulder':'Off-Peak');
+        const col   = phaseCol(phase);
+        const pct   = Math.round(v / maxIdx * 100);
+        return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+          <div style="width:32px;font-size:.72rem;color:var(--text2);font-weight:600;flex-shrink:0">${m}</div>
+          <div style="flex:1;background:var(--surf2);border-radius:4px;height:20px;overflow:hidden;position:relative">
+            <div style="background:${col};height:100%;width:${pct}%;border-radius:4px;transition:width .7s;
+              box-shadow:${v>=1.15?`0 0 8px ${col}55`:v>=1.0?`0 0 4px ${col}33`:'none'}"></div>
+          </div>
+          <div style="width:36px;font-size:.72rem;color:${col};font-weight:700;text-align:right;flex-shrink:0">${v.toFixed(2)}x</div>
+          ${phaseBadge(phase)}
+        </div>`;
+      }).join('');
+
+      // Summary stats row
+      const amp     = sa.amplitude     ? `Amplitude: <b>${sa.amplitude}x</b>` : '';
+      const yoy     = sa.yoy_growth_pct != null ? `YoY Growth: <b style="color:${sa.yoy_growth_pct>=0?'var(--mint)':'var(--red)'}">${sa.yoy_growth_pct>0?'+':''}${sa.yoy_growth_pct}%</b>` : '';
+      const peak_c  = sa.peak_months    != null ? `Peak months: <b>${sa.peak_months}</b>` : '';
+      const off_c   = sa.offpeak_months != null ? `Off-peak months: <b>${sa.offpeak_months}</b>` : '';
+
+      sWrap.innerHTML = `
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;background:var(--surf2);border-radius:var(--r-md);font-size:.78rem;color:var(--text2)">
+          ${[amp,yoy,peak_c,off_c].filter(Boolean).map(s=>`<span>${s}</span>`).join('<span style="color:var(--border2)">|</span>')}
+        </div>
+        <div style="margin-bottom:10px;font-size:.76rem;color:var(--text3);line-height:1.6">${sa.interpretation||''}</div>
+        <div style="display:flex;gap:14px;margin-bottom:10px;font-size:.72rem">
+          <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--mint)"></span>Peak (≥1.15x)</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--cyan)"></span>Shoulder (0.85–1.15x)</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--text3)"></span>Off-Peak (&lt;0.85x)</span>
+        </div>
+        ${bars}`;
+    }
+  }
+
+  // Show the ML badge in nav
+  const badge = document.getElementById('mlBadge');
+  if (badge) badge.style.display = 'inline-block';
+}
+
+
+function showToast(msg) {
+  document.getElementById('toastMsg').textContent = msg;
+  const t = document.getElementById('toast');
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 9000);
+}
+
+// ════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', async () => {
+  await initDAG();
+  initCharts();
+  refreshDBStatus();
+  refreshAirflowHealth();
+  refreshDatasetInfo();
+  setInterval(refreshDBStatus,    6000);
+  setInterval(refreshAirflowHealth, 8000);
+
+  // Load current status on page open
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    applyStatus(d);
+    if (d.status === 'running') startPolling();
+    if (d.status === 'success') {
+      document.getElementById('btnDl').disabled = false;
+      // Render ML results if already present from previous run
+      if (d.ml_results) renderMLResults(d.ml_results);
+      else {
+        // Try fetching ml_results.json directly (page refresh after completed run)
+        try {
+          const mr = await fetch('/api/ml');
+          if (mr.ok) { const ml = await mr.json(); if (ml && !ml.error) renderMLResults(ml); }
+        } catch(e) {}
+      }
+    }
+  } catch(e) {}
+});
+
+async function refreshDatasetInfo() {
+  try {
+    const r = await fetch('/api/dataset_info');
+    const d = await r.json();
+    const rowEl = document.getElementById('dsRows');
+    const mbEl  = document.getElementById('dsMb');
+    if (!rowEl) return;
+    if (d.exists) {
+      rowEl.textContent = d.rows.toLocaleString() + ' rows';
+      if (mbEl) mbEl.textContent = '· ' + d.size_mb + ' MB';
+    } else {
+      rowEl.textContent = 'input.csv not found';
+      rowEl.style.color = 'var(--red)';
+    }
+  } catch(e) {}
+}
+</script>
+</body>
+</html>

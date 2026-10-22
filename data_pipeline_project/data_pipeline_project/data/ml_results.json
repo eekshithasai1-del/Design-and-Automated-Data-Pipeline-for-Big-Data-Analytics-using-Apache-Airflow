@@ -1,0 +1,90 @@
+{
+  "generated_at": "2026-04-17T23:56:56.609265",
+  "anomalies": [],
+  "anomaly_count": 0,
+  "forecast": [
+    {
+      "month": "2012-01",
+      "predicted": 876420.72,
+      "ci_low": 395803.53,
+      "ci_high": 1357037.9,
+      "confidence": "95% CI: \u00a3395,804 \u2013 \u00a31,357,038",
+      "trend": "upward"
+    },
+    {
+      "month": "2012-02",
+      "predicted": 754422.42,
+      "ci_low": 273805.23,
+      "ci_high": 1235039.6,
+      "confidence": "95% CI: \u00a3273,805 \u2013 \u00a31,235,040",
+      "trend": "upward"
+    },
+    {
+      "month": "2012-03",
+      "predicted": 1018857.88,
+      "ci_low": 538240.7,
+      "ci_high": 1499475.06,
+      "confidence": "95% CI: \u00a3538,241 \u2013 \u00a31,499,475",
+      "trend": "upward"
+    }
+  ],
+  "category_insights": {
+    "total_revenue": 10666684.54,
+    "top_category": "Home & Garden",
+    "top_revenue": 3051914.99,
+    "bottom_category": "Sports",
+    "bottom_revenue": 166247.32,
+    "hhi_index": 0.1986,
+    "concentration": "Moderate \u2014 balanced spread",
+    "shares": {
+      "Home & Garden": 28.61,
+      "General": 27.74,
+      "Books": 12.62,
+      "Clothing": 9.96,
+      "Electronics": 8.71,
+      "Food": 6.65,
+      "Toys & Gifts": 4.16,
+      "Sports": 1.56
+    },
+    "n_categories": 8
+  },
+  "seasonal_analysis": {
+    "seasonal_index": {
+      "Jan": 0.785,
+      "Feb": 0.644,
+      "Mar": 0.831,
+      "Apr": 1.46,
+      "May": 0.885,
+      "Jun": 0.869,
+      "Jul": 1.038,
+      "Aug": 0.826,
+      "Sep": 1.298,
+      "Oct": 1.123,
+      "Nov": 2.765,
+      "Dec": 0.589
+    },
+    "peak_season": "Nov",
+    "trough_season": "Dec",
+    "peak_index": 2.765,
+    "trough_index": 0.589,
+    "interpretation": "Nov is the strongest month (2.77x average), Dec is the weakest (0.59x average)."
+  },
+  "data_quality": {
+    "overall_score": 100.0,
+    "completeness": 100.0,
+    "uniqueness": 100.0,
+    "validity": 100.0,
+    "timeliness": 100.0,
+    "grade": "A",
+    "interpretation": "Excellent data quality \u2014 production-ready."
+  },
+  "summary_stats": {
+    "n_months": 22,
+    "mean_monthly_rev": 484849.3,
+    "max_monthly_rev": 1340417.58,
+    "min_monthly_rev": 31774.95,
+    "revenue_trend": "upward",
+    "total_revenue": 10666684.54
+  },
+  "engine": "Pure Python ML (Z-score + IQR + Linear Regression + Seasonal Decomposition)"
+}

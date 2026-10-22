@@ -1,0 +1,197 @@
+version: '3.8'
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  E-Commerce Big Data Pipeline — Docker Compose
+#  Services: Airflow Webserver + Scheduler + Worker + PostgreSQL + Redis
+#
+#  KEY CHANGE: All Airflow services now use a CUSTOM IMAGE (build: .)
+#  that has Java 17 + PySpark pre-installed.  This fixes:
+#    PySparkRuntimeError: [JAVA_GATEWAY_EXITED]
+#
+#  Flask runs on HOST (Windows), communicates with Airflow via REST API.
+# ══════════════════════════════════════════════════════════════════════════════
+
+x-airflow-common: &airflow-common
+  # ── Use our custom image instead of bare apache/airflow ──────────────────
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: airflow-with-java:2.8.1   # local tag — avoids repeated rebuilds
+
+  environment: &airflow-env
+    # ── Core ──────────────────────────────────────────────────────────────────
+    AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+    AIRFLOW__CORE__FERNET_KEY: 'ZmDfcTF7_60GrrY167zsiPd67pEvs0aGOv2oasOM1Pg='
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__CORE__ENABLE_XCOM_PICKLING: 'true'
+
+    # ── Database (Airflow metadata) ────────────────────────────────────────────
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres-airflow/airflow
+
+    # ── Celery ────────────────────────────────────────────────────────────────
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres-airflow/airflow
+    AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+
+    # ── REST API (enable Basic Auth so Flask can call it) ────────────────────
+    AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
+    AIRFLOW__API__ENABLE_EXPERIMENTAL_API: 'true'
+
+    # ── Webserver ─────────────────────────────────────────────────────────────
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
+    AIRFLOW__WEBSERVER__SECRET_KEY: 'supersecretkey_change_in_prod'
+
+    # ── Pipeline PostgreSQL warehouse (your data, not Airflow meta) ───────────
+    DB_HOST: postgres-warehouse
+    DB_PORT: '5432'      # inside-container port — Airflow tasks connect directly to the service
+    DB_NAME: pipeline_db
+    DB_USER: pipeline
+    DB_PASSWORD: pipeline123
+
+    # ── Python path so utils/ imports work inside the container ───────────────
+    PYTHONPATH: /opt/airflow/dags
+
+    # ── Java home — must match what Dockerfile installs ───────────────────────
+    JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+
+    # ── NOTE: _PIP_ADDITIONAL_REQUIREMENTS removed — deps are now in the image.
+    #    This prevents re-downloading ~300 MB of packages on every container start.
+
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./utils:/opt/airflow/dags/utils          # utils/ inside dags/ so imports work
+    - ./data:/opt/airflow/data
+    - ./logs:/opt/airflow/logs
+    - airflow-plugins:/opt/airflow/plugins
+  depends_on:
+    postgres-airflow:
+      condition: service_healthy
+    postgres-warehouse:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+# ── Services ──────────────────────────────────────────────────────────────────
+services:
+
+  # ── PostgreSQL for Airflow metadata ─────────────────────────────────────────
+  postgres-airflow:
+    image: postgres:15
+    container_name: postgres-airflow
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - pg-airflow-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  # ── PostgreSQL for your pipeline warehouse ───────────────────────────────────
+  postgres-warehouse:
+    image: postgres:15
+    container_name: postgres-warehouse
+    environment:
+      POSTGRES_USER: pipeline
+      POSTGRES_PASSWORD: pipeline123
+      POSTGRES_DB: pipeline_db
+    ports:
+      - "5433:5432"      # 5433 on host → avoids conflict with any local PG
+    volumes:
+      - pg-warehouse-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "pipeline"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  # ── Redis (Celery broker) ────────────────────────────────────────────────────
+  redis:
+    image: redis:7.2-bookworm
+    container_name: redis
+    expose:
+      - 6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 30s
+      retries: 50
+      start_period: 30s
+    restart: always
+
+  # ── Airflow DB Init + Admin User (runs once) ─────────────────────────────────
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username admin \
+          --password admin \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email admin@example.com || true
+        echo "✅ Airflow initialised"
+    restart: "no"
+
+  # ── Airflow Webserver ────────────────────────────────────────────────────────
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow-webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: always
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  # ── Airflow Scheduler ────────────────────────────────────────────────────────
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow-scheduler
+    command: scheduler
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  # ── Airflow Worker (Celery) ──────────────────────────────────────────────────
+  airflow-worker:
+    <<: *airflow-common
+    container_name: airflow-worker
+    command: celery worker
+    environment:
+      <<: *airflow-env
+      DUMB_INIT_SETSID: "0"
+    restart: always
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
+volumes:
+  pg-airflow-data:
+  pg-warehouse-data:
+  airflow-plugins:

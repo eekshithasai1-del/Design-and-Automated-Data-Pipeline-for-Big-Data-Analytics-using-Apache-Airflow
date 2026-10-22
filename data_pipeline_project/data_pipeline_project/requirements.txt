@@ -1,0 +1,11 @@
+flask>=3.0.0
+apache-airflow>=2.8.0
+pandas>=2.0.0
+# sqlalchemy==1.4.49 is REQUIRED — Airflow 2.8.x is not compatible with SQLAlchemy 2.x.
+# Using 2.x causes: "Invalid value for 'executemany_mode'" which breaks the Airflow
+# metadata DB and causes every task to fail / retry indefinitely.
+sqlalchemy==1.4.49
+psycopg2-binary>=2.9.0
+requests>=2.31.0
+pyspark>=3.4.0
+python-dotenv>=1.0.0
